@@ -8,6 +8,7 @@ namespace KinematicCharacterController
     public struct KinematicMotor : IComponentData
     {
         public float SkinWidth;
-        public NativeArray<ColliderCastHit> ColliderHits;
+        public NativeArray<ColliderCastHit> HorizontalColliderHits;
+        public NativeArray<ColliderCastHit> VerticalColliderHits;
     }
 }
