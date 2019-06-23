@@ -13,10 +13,6 @@ namespace KinematicCharacterController
         [ System.Serializable ]
         public class GizmoRenderSettings
         {
-            public bool ShowPosition = true;
-            public bool ShowDistance = true;
-            public bool ShowVelocity = true;
-            public bool ShowCollisions = true;
         }
 
         public GizmoRenderSettings Settings;
@@ -27,9 +23,6 @@ namespace KinematicCharacterController
 
         private Dictionary<PrimitiveType, UnityEngine.Mesh> m_primitiveMeshes;
         private BlobAssetReference<Unity.Physics.Collider> m_collider;
-
-        private NativeList<DistanceHit> m_distanceHits;
-        private NativeList<ColliderCastHit> m_colliderHits;
 
         private float3 m_deltaInput
         {
@@ -46,9 +39,6 @@ namespace KinematicCharacterController
             m_simulating = true;
 
             m_collider = CreateCollider( m_primitiveMeshes[ PrimitiveType.Capsule ] );
-
-            m_distanceHits = new NativeList<DistanceHit>( Allocator.Persistent );
-            m_colliderHits = new NativeList<ColliderCastHit>( Allocator.Persistent );
         }
 
         void Update()
@@ -60,27 +50,13 @@ namespace KinematicCharacterController
         {
             if( !m_simulating ) 
                 return;
-            
-            if( Settings.ShowPosition )
-                DrawPositionGizmo();
 
-            if( Settings.ShowDistance )
-                DrawDistanceHitGizmos();
-
-            if( Settings.ShowVelocity )
-                DrawVelocityGizmos();
-
-            if( Settings.ShowCollisions )
-                DrawColliderHitGizmos();
+            DrawPositionGizmo();
         }
 
         void OnDestroy()
         {
-            if( m_distanceHits.IsCreated )
-                m_distanceHits.Dispose();
-
-            if( m_colliderHits.IsCreated )
-                m_colliderHits.Dispose();
+            
         }
 
         private BlobAssetReference<Unity.Physics.Collider> CreateCollider( UnityEngine.Mesh mesh ) 
@@ -105,44 +81,12 @@ namespace KinematicCharacterController
 
             RigidTransform rigidTransform = new RigidTransform( transform.rotation.y, transform.position );
             
-            SimulateDistanceQuery( ref world, rigidTransform );
-
-            if( InputMovement.y != 0 )
-                SimulateVerticalProbe( ref world, rigidTransform );
-        }
-
-        private void SimulateDistanceQuery( ref PhysicsWorld world, RigidTransform rigidTransform )
-        {
-            ColliderDistanceInput distanceInput = new ColliderDistanceInput
-            {
-                Collider = ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(),
-                Transform = rigidTransform,
-                MaxDistance = SkinWidth
-            };
-
-            world.CalculateDistance( distanceInput, ref m_distanceHits );
-        }
-
-        private void SimulateVerticalProbe( ref PhysicsWorld world, RigidTransform rigidTransform )
-        {
-            ColliderCastInput colliderInput = new ColliderCastInput
-            {
-                Collider = ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(),
-                Direction = m_deltaInput,
-                Position = rigidTransform.pos,
-                Orientation = rigidTransform.rot                
-            };
-
-            world.CastCollider( colliderInput, ref m_colliderHits );
+                        
         }
 
         private void ClearPreviousSimulationCollections()
         {
-            if( m_distanceHits.IsCreated )
-                m_distanceHits.Clear();
-
-            if( m_colliderHits.IsCreated )
-                m_colliderHits.Clear();
+            
         }
 
         #region Gizmo Helpers
@@ -163,50 +107,6 @@ namespace KinematicCharacterController
         {
             Gizmos.color = Color.white;
             Gizmos.DrawWireMesh( m_primitiveMeshes[ PrimitiveType.Capsule ], transform.position, transform.rotation );
-        }
-
-        private void DrawDistanceHitGizmos()
-        {
-            if( !m_distanceHits.IsCreated )
-                return;
-
-            Gizmos.color = new Color( 255, 149, 0 );
-            foreach( DistanceHit hit in m_distanceHits.ToArray() )
-            {
-                float3 queryPoint = hit.Position + hit.SurfaceNormal * hit.Distance;
-                Gizmos.DrawWireSphere( hit.Position, 0.05f );
-                Gizmos.DrawWireSphere( queryPoint, 0.05f );
-                Gizmos.DrawLine( hit.Position, queryPoint );
-            }
-        }
-
-        private void DrawColliderHitGizmos()
-        {
-            if( !m_colliderHits.IsCreated )
-                return;
-
-            Gizmos.color = Color.red;
-            foreach( ColliderCastHit hit in m_colliderHits.ToArray() )
-            {
-                Gizmos.DrawRay( hit.Position, hit.SurfaceNormal );
-            }
-        }
-
-        private void DrawVelocityGizmos()
-        {
-            Gizmos.color = Color.green;
-
-            if( m_deltaInput.y != 0 )
-            {
-                Gizmos.DrawLine( transform.position, transform.position + new Vector3( 0, m_deltaInput.y, 0 ) );
-                Gizmos.DrawWireMesh( m_primitiveMeshes[ PrimitiveType.Capsule ], transform.position + new Vector3( 0, m_deltaInput.y, 0 ), transform.rotation );
-            }
-            
-            if( m_deltaInput.x != 0 || m_deltaInput.z != 0 )
-            {
-                Gizmos.DrawLine( transform.position, transform.position + new Vector3( m_deltaInput.x, 0, m_deltaInput.z ) );
-                Gizmos.DrawWireMesh( m_primitiveMeshes[ PrimitiveType.Capsule ], transform.position + new Vector3( m_deltaInput.x, 0, m_deltaInput.z ), transform.rotation );
-            }
         }
         #endregion
     }
