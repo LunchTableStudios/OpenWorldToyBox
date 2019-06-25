@@ -26,6 +26,8 @@ namespace KinematicCharacterController
         private Dictionary<PrimitiveType, UnityEngine.Mesh> m_primitiveMeshes;
         private BlobAssetReference<Unity.Physics.Collider> m_collider;
 
+        private float3 solverVelocity;
+
         private float3 m_deltaInput
         {
             get
@@ -54,6 +56,11 @@ namespace KinematicCharacterController
                 return;
 
             DrawPositionGizmo();
+
+            Vector3 solverPosition = solverVelocity;
+
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawWireMesh( m_primitiveMeshes[ PrimitiveType.Capsule ], transform.position + solverPosition, transform.rotation );
         }
 
         void OnDestroy()
@@ -87,9 +94,13 @@ namespace KinematicCharacterController
             NativeArray<ColliderCastHit> colliderHits = new NativeArray<ColliderCastHit>( MaxCollisionQueries, Allocator.TempJob );
             NativeArray<SurfaceConstraintInfo> constraintInfos = new NativeArray<SurfaceConstraintInfo>( MaxCollisionQueries * 4, Allocator.TempJob );
 
-            KinematicMotorUtilities.CollectDistanceCollisions( world, rigidTransform, ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(), SkinWidth, Time.fixedDeltaTime, ref distanceHits, ref constraintInfos );
-            
-            
+            int constraintCount = KinematicMotorUtilities.CollectDistanceCollisions( world, rigidTransform, ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(), SkinWidth, Time.fixedDeltaTime, ref distanceHits, ref constraintInfos );
+
+            solverVelocity = m_deltaInput;
+
+            SimplexSolver.Solve( world, Time.fixedDeltaTime, math.up(), constraintCount, ref constraintInfos, ref rigidTransform.pos, ref solverVelocity, out float integratedTime );
+
+            Debug.Log( constraintCount );
 
             distanceHits.Dispose();
             colliderHits.Dispose();

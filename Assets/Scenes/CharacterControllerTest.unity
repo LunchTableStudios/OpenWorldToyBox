@@ -642,7 +642,7 @@ MonoBehaviour:
   MaxCollisionQueries: 128
   InputMovement:
     x: 0
-    y: 0
+    y: -9.8
     z: 0
   SkinWidth: 0.03
 --- !u!4 &805034664
