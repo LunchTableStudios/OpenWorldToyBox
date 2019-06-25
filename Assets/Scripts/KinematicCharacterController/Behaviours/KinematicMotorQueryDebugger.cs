@@ -16,6 +16,8 @@ namespace KinematicCharacterController
         }
 
         public GizmoRenderSettings Settings;
+
+        public int MaxCollisionQueries = 128;
         public float3 InputMovement;
         public float SkinWidth = 0.03f;
 
@@ -81,7 +83,17 @@ namespace KinematicCharacterController
 
             RigidTransform rigidTransform = new RigidTransform( transform.rotation.y, transform.position );
             
-                        
+            NativeArray<DistanceHit> distanceHits = new NativeArray<DistanceHit>( MaxCollisionQueries, Allocator.TempJob );
+            NativeArray<ColliderCastHit> colliderHits = new NativeArray<ColliderCastHit>( MaxCollisionQueries, Allocator.TempJob );
+            NativeArray<SurfaceConstraintInfo> constraintInfos = new NativeArray<SurfaceConstraintInfo>( MaxCollisionQueries * 4, Allocator.TempJob );
+
+            KinematicMotorUtilities.CollectDistanceCollisions( world, rigidTransform, ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(), SkinWidth, Time.fixedDeltaTime, ref distanceHits, ref constraintInfos );
+            
+            
+
+            distanceHits.Dispose();
+            colliderHits.Dispose();
+            constraintInfos.Dispose();
         }
 
         private void ClearPreviousSimulationCollections()

@@ -1,6 +1,7 @@
 namespace KinematicCharacterController
 {
     using Unity.Physics;
+    using Unity.Mathematics;
     using Unity.Collections;
 
     public static class KinematicMotorUtilities
@@ -47,6 +48,57 @@ namespace KinematicCharacterController
                     hit.Transform( transform, rigidbodyIndex );
                     AllHits[i] = hit;
                 }
+            }
+        }
+
+        public static unsafe void CollectDistanceCollisions( PhysicsWorld world, RigidTransform transform, Collider* collider, float skinWidth, float deltaTime, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
+        {
+            MaxHitCollector<DistanceHit> distanceHitCollector = new KinematicMotorUtilities.MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
+            
+            int numConstraints = 0;
+            {
+                ColliderDistanceInput distanceInput = new ColliderDistanceInput
+                {
+                    MaxDistance = skinWidth,
+                    Transform = new RigidTransform
+                    {
+                        pos = transform.pos,
+                        rot = transform.rot
+                    },
+                    Collider = collider
+                };
+                world.CalculateDistance( distanceInput, ref distanceHitCollector );
+
+                for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
+                {
+                    DistanceHit hit = distanceHitCollector.AllHits[ hitIndex ];
+                    CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
+                    constraintInfos[ numConstraints++ ] = constraint;
+                }
+            }
+
+        }
+
+        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
+        {
+            constraint = new SurfaceConstraintInfo
+            {
+                Plane = new Plane
+                {
+                    Normal = normal,
+                    Distance = distance
+                },
+                ColliderKey = key,
+                RigidBodyIndex = rigidbodyIndex,
+                HitPosition = position,
+                Velocity = world.MotionVelocities[ rigidbodyIndex ].LinearVelocity,
+                Priority = 1,
+            };
+
+            if( distance < 0.0f )
+            {
+                float3 recoveryVelocity = constraint.Velocity - constraint.Plane.Normal * distance;
+                constraint.Velocity = recoveryVelocity;
             }
         }
     }
