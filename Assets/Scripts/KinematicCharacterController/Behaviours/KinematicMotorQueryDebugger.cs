@@ -18,7 +18,6 @@ namespace KinematicCharacterController
         public GizmoRenderSettings Settings;
 
         public int MaxCollisionQueries = 128;
-        public float3 InputMovement;
         public float SkinWidth = 0.03f;
 
         private bool m_simulating = false;
@@ -26,15 +25,15 @@ namespace KinematicCharacterController
         private Dictionary<PrimitiveType, UnityEngine.Mesh> m_primitiveMeshes;
         private BlobAssetReference<Unity.Physics.Collider> m_collider;
 
-        private float3 solverVelocity;
-
-        private float3 m_deltaInput
+        public float3 TargetLinearVelocity;
+        private float3 m_targetLinearVelocity
         {
             get
             {
-                return InputMovement * Time.fixedDeltaTime;
+                return TargetLinearVelocity * Time.fixedDeltaTime;
             }
         }
+        private float3 solverVelocity;
 
         void Start()
         {
@@ -48,6 +47,7 @@ namespace KinematicCharacterController
         void Update()
         {
             RunSimulation();
+            transform.position += new Vector3( solverVelocity.x, solverVelocity.y, solverVelocity.z );
         }
 
         void OnDrawGizmos()
@@ -94,9 +94,9 @@ namespace KinematicCharacterController
             NativeArray<ColliderCastHit> colliderHits = new NativeArray<ColliderCastHit>( MaxCollisionQueries, Allocator.TempJob );
             NativeArray<SurfaceConstraintInfo> constraintInfos = new NativeArray<SurfaceConstraintInfo>( MaxCollisionQueries * 4, Allocator.TempJob );
 
-            int constraintCount = KinematicMotorUtilities.CollectDistanceCollisions( world, rigidTransform, ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(), SkinWidth, Time.fixedDeltaTime, ref distanceHits, ref constraintInfos );
+            int constraintCount = KinematicMotorUtilities.HandleMotorConstraints( world, rigidTransform, ( Unity.Physics.Collider* )m_collider.GetUnsafePtr(), SkinWidth, Time.fixedDeltaTime, ref distanceHits, ref constraintInfos );
 
-            solverVelocity = m_deltaInput;
+            solverVelocity = m_targetLinearVelocity;
 
             SimplexSolver.Solve( world, Time.fixedDeltaTime, math.up(), constraintCount, ref constraintInfos, ref rigidTransform.pos, ref solverVelocity, out float integratedTime );
 

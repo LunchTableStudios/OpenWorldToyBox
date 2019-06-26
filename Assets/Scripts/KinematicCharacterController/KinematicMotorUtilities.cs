@@ -51,7 +51,7 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe int CollectDistanceCollisions( PhysicsWorld world, RigidTransform transform, Collider* collider, float skinWidth, float deltaTime, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
+        public static unsafe int HandleMotorConstraints( PhysicsWorld world, RigidTransform transform, Collider* collider, float skinWidth, float deltaTime, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
         {
             MaxHitCollector<DistanceHit> distanceHitCollector = new KinematicMotorUtilities.MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
             
@@ -72,7 +72,7 @@ namespace KinematicCharacterController
                 for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
                 {
                     DistanceHit hit = distanceHitCollector.AllHits[ hitIndex ];
-                    CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
+                    CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, float3.zero, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
                     constraintInfos[ numConstraints++ ] = constraint;
                 }
             }
@@ -80,8 +80,8 @@ namespace KinematicCharacterController
             return numConstraints;
 
         }
-
-        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
+        
+        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 velocity, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
         {
             constraint = new SurfaceConstraintInfo
             {
@@ -93,7 +93,7 @@ namespace KinematicCharacterController
                 ColliderKey = key,
                 RigidBodyIndex = rigidbodyIndex,
                 HitPosition = position,
-                Velocity = float3.zero,
+                Velocity = velocity,
                 Priority = 1,
             };
 
