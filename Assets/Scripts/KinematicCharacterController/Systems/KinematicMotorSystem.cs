@@ -58,8 +58,19 @@ namespace KinematicCharacterController
             }
         }
 
+        private struct ApplyMovementToVelocityJob : IJobForEach<Movement, PhysicsVelocity>
+        {
+            public void Execute( [ ReadOnly ] ref Movement movement, ref PhysicsVelocity velocity )
+            {
+                velocity.Linear = movement.Delta;
+            }
+        }
+
         protected override JobHandle OnUpdate(JobHandle inputDependencies )
         {
+            ApplyMovementToVelocityJob applyMovementJob = new ApplyMovementToVelocityJob();
+            inputDependencies = applyMovementJob.Schedule( this, inputDependencies );
+
             return inputDependencies;
         }
     }

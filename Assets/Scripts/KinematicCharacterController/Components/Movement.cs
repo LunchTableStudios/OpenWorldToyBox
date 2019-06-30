@@ -6,5 +6,6 @@ namespace KinematicCharacterController
     public struct Movement : IComponentData
     {
         public float3 Value;
+        public float3 Delta;
     }
 }
