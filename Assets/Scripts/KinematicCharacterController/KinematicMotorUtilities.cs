@@ -51,7 +51,7 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe int HandleMotorConstraints( PhysicsWorld world, RigidTransform transform, Collider* collider, float skinWidth, float deltaTime, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
+        public static unsafe int HandleMotorConstraints( PhysicsWorld world, RigidTransform transform, Collider* collider, float skinWidth, float deltaTime, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
         {
             MaxHitCollector<DistanceHit> distanceHitCollector = new KinematicMotorUtilities.MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
             
