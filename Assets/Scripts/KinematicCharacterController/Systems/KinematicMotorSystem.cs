@@ -60,7 +60,7 @@ namespace KinematicCharacterController
                         rot = rotation.Value
                     };
 
-                    KinematicMotorUtilities.HandleMotorConstraints( World, rigidTransform, queryCollider, motor.SkinWidth, DeltaTime, ref DistanceHits, ref ConstraintInfos );
+                    KinematicMotorUtilities.HandleMotorConstraints( World, rigidTransform, queryCollider, motor.SkinWidth, DeltaTime, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
                 }
             }
 
