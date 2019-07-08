@@ -28,13 +28,13 @@ namespace KinematicCharacterController
 
             public float DeltaTime;
 
-            public ArchetypeChunkComponentType<Translation> TranslationType;
-            public ArchetypeChunkComponentType<Rotation> RotationType;
-            public ArchetypeChunkComponentType<Movement> MovementType;
+            [NativeDisableContainerSafetyRestriction] public ArchetypeChunkComponentType<Translation> TranslationType;
+            [NativeDisableContainerSafetyRestriction] public ArchetypeChunkComponentType<Rotation> RotationType;
+            [NativeDisableContainerSafetyRestriction] public ArchetypeChunkComponentType<Movement> MovementType;
 
-            public NativeArray<DistanceHit> DistanceHits;
-            public NativeArray<ColliderCastHit> ColliderCastHits;
-            public NativeArray<SurfaceConstraintInfo> ConstraintInfos;
+            [DeallocateOnJobCompletion] public NativeArray<DistanceHit> DistanceHits;
+            [DeallocateOnJobCompletion] public NativeArray<ColliderCastHit> ColliderCastHits;
+            [DeallocateOnJobCompletion] public NativeArray<SurfaceConstraintInfo> ConstraintInfos;
 
             public void Execute( ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex )
             {
@@ -60,7 +60,15 @@ namespace KinematicCharacterController
                         rot = rotation.Value
                     };
 
-                    KinematicMotorUtilities.HandleMotorConstraints( World, rigidTransform, queryCollider, motor.SkinWidth, DeltaTime, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
+                    KinematicMotorUtilities.HandleMotorConstraints( World, queryCollider, motor.SkinWidth, DeltaTime, ref rigidTransform, ref movement.Delta, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
+
+                    translation.Value = rigidTransform.pos;
+
+                    // Write results back to chunk
+                    {
+                        chunkMovements[i] = movement;
+                        chunkTranslations[i] = translation;
+                    }
                 }
             }
 
@@ -68,10 +76,10 @@ namespace KinematicCharacterController
             {
                 Collider* colliderPtr = from.ColliderPtr;
 
-                byte* copiedColliderMemory = stackalloc byte[ colliderPtr->MemorySize ];
+                byte* copiedColliderMemory = stackalloc byte[ colliderPtr -> MemorySize ];
                 to = ( Collider* )( copiedColliderMemory );
-                UnsafeUtility.MemCpy( to, colliderPtr, colliderPtr->MemorySize );
-                to->Filter = CollisionFilter.Default;
+                UnsafeUtility.MemCpy( to, colliderPtr, colliderPtr -> MemorySize );
+                to -> Filter = CollisionFilter.Default;
             }
         }
 
