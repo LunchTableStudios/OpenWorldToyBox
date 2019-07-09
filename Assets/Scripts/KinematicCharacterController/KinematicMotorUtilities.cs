@@ -51,7 +51,7 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe int HandleMotorConstraints( PhysicsWorld world, Collider* collider, float skinWidth, float deltaTime, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
+        public static unsafe int HandleMotorConstraints( PhysicsWorld world, Collider* collider, float deltaTime, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
         {
             int numConstraints = 0;
 
@@ -62,7 +62,7 @@ namespace KinematicCharacterController
             {
                 ColliderDistanceInput distanceInput = new ColliderDistanceInput
                 {
-                    MaxDistance = skinWidth,
+                    MaxDistance = 0.03f,
                     Transform = new RigidTransform
                     {
                         pos = transform.pos,

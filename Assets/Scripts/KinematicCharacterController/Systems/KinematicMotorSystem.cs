@@ -61,7 +61,7 @@ namespace KinematicCharacterController
                         rot = rotation.Value
                     };
 
-                    KinematicMotorUtilities.HandleMotorConstraints( World, queryCollider, motor.SkinWidth, DeltaTime, ref rigidTransform, ref movement.Delta, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
+                    KinematicMotorUtilities.HandleMotorConstraints( World, queryCollider, DeltaTime, ref rigidTransform, ref movement.Delta, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
 
                     translation.Value = rigidTransform.pos;
 
@@ -100,7 +100,6 @@ namespace KinematicCharacterController
                 typeof( KinematicMotor ),
                 typeof( Movement ),
                 typeof( PhysicsCollider ),
-                typeof( PhysicsVelocity ),
                 typeof( Translation ),
                 typeof( Rotation )
             );
@@ -108,33 +107,29 @@ namespace KinematicCharacterController
 
         protected override JobHandle OnUpdate(JobHandle inputDependencies )
         {
-            // NativeArray<ArchetypeChunk> chunks = m_motorQuery.CreateArchetypeChunkArray( Allocator.TempJob );
+            NativeArray<ArchetypeChunk> chunks = m_motorQuery.CreateArchetypeChunkArray( Allocator.TempJob );
 
-            // ArchetypeChunkComponentType<KinematicMotor> chunkKinematicMotorType = GetArchetypeChunkComponentType<KinematicMotor>();
-            // ArchetypeChunkComponentType<Movement> chunkMovementType = GetArchetypeChunkComponentType<Movement>();
-            // ArchetypeChunkComponentType<PhysicsCollider> chunkPhysicsColliderType = GetArchetypeChunkComponentType<PhysicsCollider>();
-            // ArchetypeChunkComponentType<PhysicsVelocity> chunkPhysicsVelocityType = GetArchetypeChunkComponentType<PhysicsVelocity>();
-            // ArchetypeChunkComponentType<Translation> chunkTranslationType = GetArchetypeChunkComponentType<Translation>();
-            // ArchetypeChunkComponentType<Rotation> chunkRotationType = GetArchetypeChunkComponentType<Rotation>();
+            ArchetypeChunkComponentType<KinematicMotor> chunkKinematicMotorType = GetArchetypeChunkComponentType<KinematicMotor>();
+            ArchetypeChunkComponentType<Movement> chunkMovementType = GetArchetypeChunkComponentType<Movement>();
+            ArchetypeChunkComponentType<PhysicsCollider> chunkPhysicsColliderType = GetArchetypeChunkComponentType<PhysicsCollider>();
+            ArchetypeChunkComponentType<Translation> chunkTranslationType = GetArchetypeChunkComponentType<Translation>();
+            ArchetypeChunkComponentType<Rotation> chunkRotationType = GetArchetypeChunkComponentType<Rotation>();
 
-            // MotorJob motorJob = new MotorJob
-            // {
-            //     World = m_buildPhysicsWorld.PhysicsWorld,
-            //     DeltaTime = UnityEngine.Time.deltaTime,
-            //     KinematicMotorType = chunkKinematicMotorType,
-            //     PhysicsColliderType = chunkPhysicsColliderType,
-            //     MovementType = chunkMovementType,
-            //     TranslationType = chunkTranslationType,
-            //     RotationType = chunkRotationType,
+            MotorJob motorJob = new MotorJob
+            {
+                World = m_buildPhysicsWorld.PhysicsWorld,
+                DeltaTime = UnityEngine.Time.deltaTime,
+                KinematicMotorType = chunkKinematicMotorType,
+                PhysicsColliderType = chunkPhysicsColliderType,
+                MovementType = chunkMovementType,
+                TranslationType = chunkTranslationType,
+                RotationType = chunkRotationType,
 
-            //     DistanceHits = new NativeArray<DistanceHit>( MAX_COLLIDER_QUERIES, Allocator.TempJob ),
-            //     ColliderCastHits = new NativeArray<ColliderCastHit>( MAX_COLLIDER_QUERIES, Allocator.TempJob ),
-            //     ConstraintInfos = new NativeArray<SurfaceConstraintInfo>( MAX_COLLIDER_QUERIES * 4, Allocator.TempJob )
-            // };
-            // inputDependencies = motorJob.Schedule( m_motorQuery, inputDependencies );
-
-            ApplyMovementToVelocityJob applyMovementJob = new ApplyMovementToVelocityJob();
-            inputDependencies = applyMovementJob.Schedule( this, inputDependencies );
+                DistanceHits = new NativeArray<DistanceHit>( MAX_COLLIDER_QUERIES, Allocator.TempJob ),
+                ColliderCastHits = new NativeArray<ColliderCastHit>( MAX_COLLIDER_QUERIES, Allocator.TempJob ),
+                ConstraintInfos = new NativeArray<SurfaceConstraintInfo>( MAX_COLLIDER_QUERIES * 4, Allocator.TempJob )
+            };
+            inputDependencies = motorJob.Schedule( m_motorQuery, inputDependencies );
 
             return inputDependencies;
         }

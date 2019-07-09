@@ -1,11 +1,12 @@
 namespace KinematicCharacterController
 {
     using Unity.Entities;
-    
+    using Unity.Mathematics;
+
     [ System.Serializable ]
     public struct KinematicMotor : IComponentData
     {
         public int MaxCollisions;
-        public float SkinWidth;
+        public float3 LinearVelocity;
     }
 }
