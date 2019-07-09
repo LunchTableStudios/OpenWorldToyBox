@@ -25,7 +25,6 @@ namespace DebugInput
                 float3 inputMovement = horizontalMovement + verticalMovement;
 
                 float3 normalizedInput = math.normalizesafe( inputMovement ) * input.Speed;
-                Debug.Log( normalizedInput );
                 movement.Value = normalizedInput;
 
             } );

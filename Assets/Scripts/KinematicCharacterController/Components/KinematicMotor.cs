@@ -7,6 +7,5 @@ namespace KinematicCharacterController
     public struct KinematicMotor : IComponentData
     {
         public int MaxCollisions;
-        public float3 LinearVelocity;
     }
 }

@@ -16,6 +16,7 @@ namespace KinematicCharacterController
     {
         private const int MAX_COLLIDER_QUERIES = 64;
 
+        private ExportPhysicsWorld m_ExportPhysicsWorldSystem;
         private BuildPhysicsWorld m_buildPhysicsWorld;
 
         private EntityQuery m_motorQuery;
@@ -23,16 +24,17 @@ namespace KinematicCharacterController
         [ BurstCompile ]
         private unsafe struct MotorJob : IJobChunk
         {
+            public float DeltaTime;
+
             [ ReadOnly ] public PhysicsWorld World;
             [ ReadOnly ] public ArchetypeChunkComponentType<KinematicMotor> KinematicMotorType;
             [ ReadOnly ] public ArchetypeChunkComponentType<PhysicsCollider> PhysicsColliderType;
-
-            public float DeltaTime;
 
             [NativeDisableContainerSafetyRestriction] public ArchetypeChunkComponentType<Translation> TranslationType;
             [NativeDisableContainerSafetyRestriction] public ArchetypeChunkComponentType<Rotation> RotationType;
             [NativeDisableContainerSafetyRestriction] public ArchetypeChunkComponentType<Movement> MovementType;
 
+            [DeallocateOnJobCompletion] public NativeArray<ArchetypeChunk> Chunks;
             [DeallocateOnJobCompletion] public NativeArray<DistanceHit> DistanceHits;
             [DeallocateOnJobCompletion] public NativeArray<ColliderCastHit> ColliderCastHits;
             [DeallocateOnJobCompletion] public NativeArray<SurfaceConstraintInfo> ConstraintInfos;
@@ -53,22 +55,24 @@ namespace KinematicCharacterController
                     Translation translation = chunkTranslations[i];
                     Rotation rotation = chunkRotations[i];
 
-                    CopyCollider( collider, out Collider* queryCollider );
-
                     RigidTransform rigidTransform = new RigidTransform
                     {
                         pos = translation.Value,
                         rot = rotation.Value
                     };
 
-                    KinematicMotorUtilities.HandleMotorConstraints( World, queryCollider, DeltaTime, ref rigidTransform, ref movement.Delta, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
-
                     translation.Value = rigidTransform.pos;
+                    rotation.Value = rigidTransform.rot;
 
-                    // Write results back to chunk
+                    // Fill out debug properties for visualization
                     {
-                        chunkMovements[i] = movement;
+
+                    }
+
+                    // Write data back to chunk
+                    {
                         chunkTranslations[i] = translation;
+                        chunkRotations[i] = rotation;
                     }
                 }
             }
@@ -94,6 +98,7 @@ namespace KinematicCharacterController
 
         protected override void OnCreate()
         {
+            m_ExportPhysicsWorldSystem = World.GetOrCreateSystem<ExportPhysicsWorld>();
             m_buildPhysicsWorld = World.GetOrCreateSystem<BuildPhysicsWorld>();
 
             m_motorQuery = GetEntityQuery(
@@ -107,6 +112,8 @@ namespace KinematicCharacterController
 
         protected override JobHandle OnUpdate(JobHandle inputDependencies )
         {
+            m_ExportPhysicsWorldSystem.FinalJobHandle.Complete(); // Without this the update seems a bit more jittery
+
             NativeArray<ArchetypeChunk> chunks = m_motorQuery.CreateArchetypeChunkArray( Allocator.TempJob );
 
             ArchetypeChunkComponentType<KinematicMotor> chunkKinematicMotorType = GetArchetypeChunkComponentType<KinematicMotor>();
@@ -117,8 +124,12 @@ namespace KinematicCharacterController
 
             MotorJob motorJob = new MotorJob
             {
+                Chunks = chunks,
+
                 World = m_buildPhysicsWorld.PhysicsWorld,
+
                 DeltaTime = UnityEngine.Time.deltaTime,
+
                 KinematicMotorType = chunkKinematicMotorType,
                 PhysicsColliderType = chunkPhysicsColliderType,
                 MovementType = chunkMovementType,
