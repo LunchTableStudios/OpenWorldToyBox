@@ -51,7 +51,7 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe int HandleMotorConstraints( PhysicsWorld world, Collider* collider, float deltaTime, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
+        public static unsafe void HandleMotorConstraints( PhysicsWorld world, Collider* collider, float deltaTime, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
         {
             int numConstraints = 0;
 
@@ -125,8 +125,6 @@ namespace KinematicCharacterController
 
             transform.pos = newPostion;
             linearVelocity = newVelocity;
-
-            return numConstraints;
         }
         
         public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 velocity, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
