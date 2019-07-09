@@ -19,7 +19,7 @@ namespace KinematicCharacterController
         {
             MovementToDeltaJob job = new MovementToDeltaJob
             {
-                DeltaTime = UnityEngine.Time.deltaTime
+                DeltaTime = UnityEngine.Time.fixedDeltaTime
             };
 
             return job.Schedule( this, inputDependencies );
