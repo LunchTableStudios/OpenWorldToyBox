@@ -22,7 +22,7 @@ namespace KinematicCharacterController
         private EntityQuery m_motorQuery;
 
         [ BurstCompile ]
-        private unsafe struct MotorJob : IJobChunk
+        private struct MotorJob : IJobChunk
         {
             public float DeltaTime;
 
@@ -63,9 +63,11 @@ namespace KinematicCharacterController
 
                     float3 linearVelocity = movement.Value;
 
-                    CopyCollider( collider, out Collider* queryCollider );
-
-                    KinematicMotorUtilities.SolveMotorConstraints( World, queryCollider, DeltaTime, motor.MaxIterations, ref rigidTransform, ref linearVelocity, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
+                    unsafe
+                    {
+                        CopyCollider( collider, out Collider* queryCollider );
+                        KinematicMotorUtilities.SolveMotorConstraints( World, queryCollider, DeltaTime, motor.MaxIterations, ref rigidTransform, ref linearVelocity, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
+                    }
                     
                     translation.Value = rigidTransform.pos;
                     rotation.Value = rigidTransform.rot;
@@ -80,7 +82,7 @@ namespace KinematicCharacterController
                 }
             }
 
-            private void CopyCollider( PhysicsCollider from, out Collider* to )
+            private unsafe void CopyCollider( PhysicsCollider from, out Collider* to )
             {
                 Collider* colliderPtr = from.ColliderPtr;
 

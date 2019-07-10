@@ -55,10 +55,12 @@ namespace KinematicCharacterController
         {
             transform.pos = transform.pos + linearVelocity * deltaTime;
 
-            float3 newPosition = transform.pos;
-            float3 newVelocity = linearVelocity;
+            float remainingTime = deltaTime;
 
-            for( int i = 0; i < maxIterations; i++ )
+            float3 currentPosition = transform.pos;
+            float3 currentVelocity = linearVelocity;
+
+            for( int i = 0; i < maxIterations && remainingTime > 0.000001f; i++ )
             {
                 MaxHitCollector<DistanceHit> distanceHitCollector = new MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
                 MaxHitCollector<ColliderCastHit> colliderHitCollector = new MaxHitCollector<ColliderCastHit>( 0.0f, ref colliderHits );
@@ -71,7 +73,7 @@ namespace KinematicCharacterController
                         MaxDistance = 0.0f,
                         Transform = new RigidTransform
                         {
-                            pos = newPosition,
+                            pos = currentPosition,
                             rot = transform.rot
                         },
                         Collider = collider
@@ -85,10 +87,17 @@ namespace KinematicCharacterController
                         constraintInfos[ constraintCount++ ] = constraint;
                     }
                 }
+
+                float3 previousPosition = currentPosition;
+                float3 previousVelocity = currentVelocity;
+
+                SimplexSolver.Solve( world, deltaTime, math.up(), constraintCount, ref constraintInfos, ref currentPosition, ref currentVelocity, out float integratedTime );
+
+                remainingTime -= integratedTime;
             }
 
-            transform.pos = newPosition;
-            linearVelocity = newVelocity;
+            transform.pos = currentPosition;
+            linearVelocity = currentVelocity;
         }
         
         public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
