@@ -6,6 +6,6 @@ namespace KinematicCharacterController
     [ System.Serializable ]
     public struct KinematicMotor : IComponentData
     {
-        public int MaxCollisions;
+        public int MaxIterations;
     }
 }

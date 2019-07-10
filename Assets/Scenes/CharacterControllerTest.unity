@@ -446,7 +446,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 237528013}
-  m_LocalRotation: {x: 0.0017988532, y: 0.0000000012098217, z: -2.1762954e-12, w: 0.9999984}
+  m_LocalRotation: {x: 0.0017905873, y: 0.09576115, z: -0.00017226052, w: 0.99540275}
   m_LocalPosition: {x: 0, y: 4.98, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -541,7 +541,7 @@ MonoBehaviour:
   m_LookaheadIgnoreY: 0
   m_HorizontalDamping: 0
   m_VerticalDamping: 0
-  m_ScreenX: 0.5
+  m_ScreenX: 0.35
   m_ScreenY: 0.5
   m_DeadZoneWidth: 0
   m_DeadZoneHeight: 0
@@ -1175,8 +1175,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1176891446}
-  m_LocalRotation: {x: -0.004499861, y: 0.000000017220612, z: 0.0000000014260184,
-    w: 0.99998987}
+  m_LocalRotation: {x: -0.004479182, y: 0.09576031, z: 0.0004309135, w: 0.9953943}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -1235,7 +1234,7 @@ MonoBehaviour:
   m_LookaheadIgnoreY: 0
   m_HorizontalDamping: 0
   m_VerticalDamping: 0
-  m_ScreenX: 0.5
+  m_ScreenX: 0.35
   m_ScreenY: 0.6
   m_DeadZoneWidth: 0
   m_DeadZoneHeight: 0
@@ -1377,7 +1376,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1620755855}
-  m_LocalRotation: {x: 0.0017988574, y: 6.053275e-10, z: -2.3272083e-10, w: 0.9999984}
+  m_LocalRotation: {x: 0.001790587, y: 0.095761135, z: -0.00017225964, w: 0.99540275}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -1453,7 +1452,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1727031883}
-  m_LocalRotation: {x: 0.01350097, y: -0.00000001722314, z: 9.677311e-10, w: 0.9999089}
+  m_LocalRotation: {x: 0.013438924, y: 0.095752545, z: -0.0012928648, w: 0.99531364}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -1496,8 +1495,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MotorSettings:
-    MaxCollisions: 64
-    SkinWidth: 0.03
+    MaxIterations: 10
   GravitySettings:
     Value:
       x: 0
@@ -1712,13 +1710,13 @@ MonoBehaviour:
   m_LookaheadIgnoreY: 0
   m_HorizontalDamping: 0
   m_VerticalDamping: 0
-  m_ScreenX: 0.5
+  m_ScreenX: 0.35
   m_ScreenY: 0.55
   m_DeadZoneWidth: 0
   m_DeadZoneHeight: 0
   m_SoftZoneWidth: 0.8
   m_SoftZoneHeight: 0.8
-  m_BiasX: 0
+  m_BiasX: -0.000000074505806
   m_BiasY: 0
   m_CenterOnActivate: 1
 --- !u!114 &1915915280

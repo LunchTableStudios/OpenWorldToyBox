@@ -61,18 +61,21 @@ namespace KinematicCharacterController
                         rot = rotation.Value
                     };
 
+                    float3 linearVelocity = movement.Value;
+
+                    CopyCollider( collider, out Collider* queryCollider );
+
+                    KinematicMotorUtilities.SolveMotorConstraints( World, queryCollider, DeltaTime, motor.MaxIterations, ref rigidTransform, ref linearVelocity, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
+                    
                     translation.Value = rigidTransform.pos;
                     rotation.Value = rigidTransform.rot;
-
-                    // Fill out debug properties for visualization
-                    {
-
-                    }
+                    movement.Value = linearVelocity;
 
                     // Write data back to chunk
                     {
                         chunkTranslations[i] = translation;
                         chunkRotations[i] = rotation;
+                        chunkMovements[i] = movement;
                     }
                 }
             }
@@ -128,7 +131,7 @@ namespace KinematicCharacterController
 
                 World = m_buildPhysicsWorld.PhysicsWorld,
 
-                DeltaTime = UnityEngine.Time.deltaTime,
+                DeltaTime = UnityEngine.Time.fixedDeltaTime,
 
                 KinematicMotorType = chunkKinematicMotorType,
                 PhysicsColliderType = chunkPhysicsColliderType,

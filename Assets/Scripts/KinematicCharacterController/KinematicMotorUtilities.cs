@@ -51,83 +51,47 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe void HandleMotorConstraints( PhysicsWorld world, Collider* collider, float deltaTime, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
+        public static unsafe void SolveMotorConstraints( PhysicsWorld world, Collider* collider, float deltaTime, int maxIterations, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
         {
-            int numConstraints = 0;
+            transform.pos = transform.pos + linearVelocity * deltaTime;
 
-            MaxHitCollector<DistanceHit> distanceHitCollector = new KinematicMotorUtilities.MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
-            MaxHitCollector<ColliderCastHit> colliderHitCollector = new KinematicMotorUtilities.MaxHitCollector<ColliderCastHit>( 1.0f, ref colliderHits );
-
-            // Distance Detection
-            {
-                ColliderDistanceInput distanceInput = new ColliderDistanceInput
-                {
-                    MaxDistance = 0.03f,
-                    Transform = new RigidTransform
-                    {
-                        pos = transform.pos,
-                        rot = transform.rot
-                    },
-                    Collider = collider
-                };
-                world.CalculateDistance( distanceInput, ref distanceHitCollector );
-
-                for( int i = 0; i < distanceHitCollector.NumHits; i++ )
-                {
-                    DistanceHit hit = distanceHitCollector.AllHits[ i ];
-                    CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, float3.zero, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
-                    constraintInfos[ numConstraints++ ] = constraint;
-                }
-            }
-
-            // Collider Detection
-            {
-                float3 displacement = linearVelocity;
-
-                ColliderCastInput colliderInput = new ColliderCastInput
-                {
-                    Position = transform.pos,
-                    Direction = displacement,
-                    Orientation = transform.rot,
-                    Collider = collider
-                };
-                world.CastCollider( colliderInput, ref colliderHitCollector );
-
-                for( int i = 0; i < colliderHitCollector.NumHits; i++ )
-                {
-                    ColliderCastHit hit = colliderHitCollector.AllHits[i];
-
-                    bool duplicate = false;
-
-                    for( int distanceHitIndex = 0; distanceHitIndex < distanceHitCollector.NumHits; distanceHitIndex++ )
-                    {
-                        DistanceHit distanceHit = distanceHitCollector.AllHits[ distanceHitIndex ];
-                        if( distanceHit.RigidBodyIndex == hit.RigidBodyIndex && distanceHit.ColliderKey.Equals( hit.ColliderKey ) )
-                        {
-                            duplicate = true;
-                            break;
-                        }
-                    }
-
-                    // Skip duplicate hits
-                    if( !duplicate )
-                    {
-                        CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, float3.zero, hit.Position, hit.SurfaceNormal, hit.Fraction * math.length( displacement ), deltaTime, out SurfaceConstraintInfo constraint );
-                        constraintInfos[ numConstraints++ ] = constraint;
-                    }
-                }
-            }
-
-            float3 newPostion = transform.pos;
+            float3 newPosition = transform.pos;
             float3 newVelocity = linearVelocity;
 
-            SimplexSolver.Solve( world, deltaTime, math.up(), numConstraints, ref constraintInfos, ref newPostion, ref newVelocity, out float integratedTime );
+            for( int i = 0; i < maxIterations; i++ )
+            {
+                MaxHitCollector<DistanceHit> distanceHitCollector = new MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
+                MaxHitCollector<ColliderCastHit> colliderHitCollector = new MaxHitCollector<ColliderCastHit>( 0.0f, ref colliderHits );
+                int constraintCount = 0;
 
-            transform.pos = newPostion;
+                // Distance Casts
+                {
+                    ColliderDistanceInput input = new ColliderDistanceInput
+                    {
+                        MaxDistance = 0.0f,
+                        Transform = new RigidTransform
+                        {
+                            pos = newPosition,
+                            rot = transform.rot
+                        },
+                        Collider = collider
+                    };
+                    world.CalculateDistance( input, ref distanceHitCollector );
+
+                    for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
+                    {
+                        DistanceHit hit = distanceHitCollector.AllHits[hitIndex];
+                        CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
+                        constraintInfos[ constraintCount++ ] = constraint;
+                    }
+                }
+            }
+
+            transform.pos = newPosition;
             linearVelocity = newVelocity;
         }
         
-        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 velocity, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
+        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
         {
             constraint = new SurfaceConstraintInfo
             {
@@ -139,7 +103,7 @@ namespace KinematicCharacterController
                 ColliderKey = key,
                 RigidBodyIndex = rigidbodyIndex,
                 HitPosition = position,
-                Velocity = velocity,
+                Velocity = float3.zero,
                 Priority = 1,
             };
 
