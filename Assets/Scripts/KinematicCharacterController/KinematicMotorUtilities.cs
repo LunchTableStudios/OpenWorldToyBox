@@ -76,5 +76,10 @@ namespace KinematicCharacterController
                 constraint.Velocity = constraint.Velocity - constraint.Plane.Normal * distance;
             }
         }
+
+        public static unsafe void SolveCollisionConstraints( PhysicsWorld world, float deltaTime, int maxIterations, Collider* collider, ref RigidTransform transform, ref float3 velocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> surfaceConstraints )
+        {
+            transform.pos = transform.pos + velocity;
+        }
     }
 }

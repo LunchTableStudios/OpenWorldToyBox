@@ -4,8 +4,7 @@ namespace DebugInput
     using Unity.Entities;
     using Unity.Mathematics;
     using KinematicCharacterController;
-
-    [ UpdateBefore( typeof( MovementSystem ) ) ]
+    
     public class DebugInputSystem : ComponentSystem
     {
         protected override void OnUpdate()

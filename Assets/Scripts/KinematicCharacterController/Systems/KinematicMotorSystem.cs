@@ -10,8 +10,7 @@ namespace KinematicCharacterController
     using Unity.Mathematics;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
-
-    [ UpdateAfter( typeof( MovementSystem ) ) ]
+    
     public class KinematicMotorSystem : JobComponentSystem
     {
         private ExportPhysicsWorld m_ExportPhysicsWorldSystem;
@@ -35,7 +34,7 @@ namespace KinematicCharacterController
             [DeallocateOnJobCompletion] public NativeArray<ArchetypeChunk> Chunks;
             [DeallocateOnJobCompletion] public NativeArray<DistanceHit> DistanceHits;
             [DeallocateOnJobCompletion] public NativeArray<ColliderCastHit> ColliderCastHits;
-            [DeallocateOnJobCompletion] public NativeArray<SurfaceConstraintInfo> ConstraintInfos;
+            [DeallocateOnJobCompletion] public NativeArray<SurfaceConstraintInfo> SurfaceConstraintInfos;
 
             public void Execute( ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex )
             {
@@ -59,9 +58,22 @@ namespace KinematicCharacterController
                         rot = rotation.Value
                     };
 
-                    // Do collision shit here
-                    // But for now:
-                    transform.pos = transform.pos + movement.Value * DeltaTime;
+                    float3 velocity = movement.Value * DeltaTime;
+
+                    unsafe
+                    {
+                        Collider* queryCollider;
+                        {
+                            Collider* colliderPtr = collider.ColliderPtr;
+
+                            byte* copiedColliderMemory = stackalloc byte[colliderPtr->MemorySize];
+                            queryCollider = (Collider*)(copiedColliderMemory);
+                            UnsafeUtility.MemCpy(queryCollider, colliderPtr, colliderPtr->MemorySize);
+                            queryCollider->Filter = CollisionFilter.Default;
+                        }
+
+                        KinematicMotorUtilities.SolveCollisionConstraints( World, DeltaTime, motor.MaxIterations, queryCollider, ref transform, ref velocity, ref DistanceHits, ref ColliderCastHits, ref SurfaceConstraintInfos );
+                    }
 
                     translation.Value = transform.pos;
 
@@ -115,7 +127,7 @@ namespace KinematicCharacterController
 
                 DistanceHits = new NativeArray<DistanceHit>( KinematicMotorUtilities.MAX_QUERIES, Allocator.TempJob ),
                 ColliderCastHits = new NativeArray<ColliderCastHit>( KinematicMotorUtilities.MAX_QUERIES, Allocator.TempJob ),
-                ConstraintInfos = new NativeArray<SurfaceConstraintInfo>( KinematicMotorUtilities.MAX_QUERIES * 4, Allocator.TempJob )
+                SurfaceConstraintInfos = new NativeArray<SurfaceConstraintInfo>( KinematicMotorUtilities.MAX_QUERIES * 4, Allocator.TempJob )
             };
             inputDependencies = motorJob.Schedule( m_motorQuery, inputDependencies );
 
