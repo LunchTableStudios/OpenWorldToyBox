@@ -14,10 +14,13 @@ namespace KinematicCharacterController
 
         public void Convert( Entity entity, EntityManager manager, GameObjectConversionSystem conversionSystem )
         {
+            if( entityReciever == null ) 
+                return;
+
             IRecieveEntity reciever = entityReciever.GetComponent<IRecieveEntity>();
 
             if( reciever != null )
-                reciever.SetRecievedEntity( entity );            
+                reciever.SetRecievedEntity( entity );     
         }
     }
 }

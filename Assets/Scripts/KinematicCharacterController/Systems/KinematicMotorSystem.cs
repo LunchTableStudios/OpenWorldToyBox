@@ -14,8 +14,6 @@ namespace KinematicCharacterController
     [ UpdateAfter( typeof( MovementSystem ) ) ]
     public class KinematicMotorSystem : JobComponentSystem
     {
-        private const int MAX_COLLIDER_QUERIES = 64;
-
         private ExportPhysicsWorld m_ExportPhysicsWorldSystem;
         private BuildPhysicsWorld m_buildPhysicsWorld;
 
@@ -55,49 +53,23 @@ namespace KinematicCharacterController
                     Translation translation = chunkTranslations[i];
                     Rotation rotation = chunkRotations[i];
 
-                    RigidTransform rigidTransform = new RigidTransform
+                    RigidTransform transform = new RigidTransform
                     {
                         pos = translation.Value,
                         rot = rotation.Value
                     };
 
-                    float3 linearVelocity = movement.Value;
+                    // Do collision shit here
+                    // But for now:
+                    transform.pos = transform.pos + movement.Value * DeltaTime;
 
-                    unsafe
-                    {
-                        CopyCollider( collider, out Collider* queryCollider );
-                        KinematicMotorUtilities.SolveMotorConstraints( World, queryCollider, DeltaTime, motor.MaxIterations, ref rigidTransform, ref linearVelocity, ref DistanceHits, ref ColliderCastHits, ref ConstraintInfos );
-                    }
-                    
-                    translation.Value = rigidTransform.pos;
-                    rotation.Value = rigidTransform.rot;
-                    movement.Value = linearVelocity;
+                    translation.Value = transform.pos;
 
-                    // Write data back to chunk
+                    // Apply data back to chunk
                     {
                         chunkTranslations[i] = translation;
-                        chunkRotations[i] = rotation;
-                        chunkMovements[i] = movement;
                     }
                 }
-            }
-
-            private unsafe void CopyCollider( PhysicsCollider from, out Collider* to )
-            {
-                Collider* colliderPtr = from.ColliderPtr;
-
-                byte* copiedColliderMemory = stackalloc byte[ colliderPtr -> MemorySize ];
-                to = ( Collider* )( copiedColliderMemory );
-                UnsafeUtility.MemCpy( to, colliderPtr, colliderPtr -> MemorySize );
-                to -> Filter = CollisionFilter.Default;
-            }
-        }
-
-        private struct ApplyMovementToVelocityJob : IJobForEach<Movement, PhysicsVelocity>
-        {
-            public void Execute( [ ReadOnly ] ref Movement movement, ref PhysicsVelocity velocity )
-            {
-                velocity.Linear = movement.Value;
             }
         }
 
@@ -141,9 +113,9 @@ namespace KinematicCharacterController
                 TranslationType = chunkTranslationType,
                 RotationType = chunkRotationType,
 
-                DistanceHits = new NativeArray<DistanceHit>( MAX_COLLIDER_QUERIES, Allocator.TempJob ),
-                ColliderCastHits = new NativeArray<ColliderCastHit>( MAX_COLLIDER_QUERIES, Allocator.TempJob ),
-                ConstraintInfos = new NativeArray<SurfaceConstraintInfo>( MAX_COLLIDER_QUERIES * 4, Allocator.TempJob )
+                DistanceHits = new NativeArray<DistanceHit>( KinematicMotorUtilities.MAX_QUERIES, Allocator.TempJob ),
+                ColliderCastHits = new NativeArray<ColliderCastHit>( KinematicMotorUtilities.MAX_QUERIES, Allocator.TempJob ),
+                ConstraintInfos = new NativeArray<SurfaceConstraintInfo>( KinematicMotorUtilities.MAX_QUERIES * 4, Allocator.TempJob )
             };
             inputDependencies = motorJob.Schedule( m_motorQuery, inputDependencies );
 

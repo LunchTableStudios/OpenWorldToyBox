@@ -9,18 +9,13 @@ namespace KinematicCharacterController
     using Unity.Collections;
 
     public unsafe class KinematicMotorQueryDebugger : MonoBehaviour
-    {
-        private EntityTransformFollower entityFollower;
-        private Entity followedEntity;
+    {        
         private bool m_simulating = false;
         private Dictionary<PrimitiveType, UnityEngine.Mesh> m_primitiveMeshes;
 
         void Start()
         {
             GatherPrimitiveMeshes();
-
-            entityFollower = GetComponent<EntityTransformFollower>();
-
             m_simulating = true;
         }
 
@@ -29,7 +24,7 @@ namespace KinematicCharacterController
             if( !m_simulating ) 
                 return;
 
-            // DrawPositionGizmo();
+            DrawPositionGizmo();
         }
 
         void OnDestroy()

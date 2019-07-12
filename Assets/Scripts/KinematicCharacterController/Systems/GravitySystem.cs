@@ -10,11 +10,11 @@ namespace KinematicCharacterController
     {
         private struct GravityJob : IJobForEach<Gravity, Movement>
         {
-            public float deltaTime;
+            public float DeltaTime;
 
             public void Execute( [ ReadOnly ] ref Gravity gravity, ref Movement movement )
             {
-                movement.Value += gravity.Value * deltaTime;
+                movement.Value += gravity.Value * DeltaTime;
             }
         }
 
@@ -22,7 +22,7 @@ namespace KinematicCharacterController
         {
             GravityJob job = new GravityJob
             {
-                deltaTime = Time.deltaTime
+                DeltaTime = Time.deltaTime
             };
 
             return job.Schedule( this, inputDependencies );

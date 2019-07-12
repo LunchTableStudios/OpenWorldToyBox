@@ -3,9 +3,12 @@ namespace KinematicCharacterController
     using Unity.Physics;
     using Unity.Mathematics;
     using Unity.Collections;
+    using Unity.Collections.LowLevel.Unsafe;
 
     public static class KinematicMotorUtilities
     {
+        public const int MAX_QUERIES = 64;
+
         public struct MaxHitCollector<T> : ICollector<T> where T : struct, IQueryResult
         {
             private int m_numHits;
@@ -51,57 +54,10 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe void SolveMotorConstraints( PhysicsWorld world, Collider* collider, float deltaTime, int maxIterations, ref RigidTransform transform, ref float3 linearVelocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> constraintInfos )
-        {
-            transform.pos = transform.pos + linearVelocity * deltaTime;
-
-            float remainingTime = deltaTime;
-
-            float3 currentPosition = transform.pos;
-            float3 currentVelocity = linearVelocity;
-
-            for( int i = 0; i < maxIterations && remainingTime > 0.000001f; i++ )
-            {
-                MaxHitCollector<DistanceHit> distanceHitCollector = new MaxHitCollector<DistanceHit>( 0.0f, ref distanceHits );
-                MaxHitCollector<ColliderCastHit> colliderHitCollector = new MaxHitCollector<ColliderCastHit>( 0.0f, ref colliderHits );
-                int constraintCount = 0;
-
-                // Distance Casts
-                {
-                    ColliderDistanceInput input = new ColliderDistanceInput
-                    {
-                        MaxDistance = 0.0f,
-                        Transform = new RigidTransform
-                        {
-                            pos = currentPosition,
-                            rot = transform.rot
-                        },
-                        Collider = collider
-                    };
-                    world.CalculateDistance( input, ref distanceHitCollector );
-
-                    for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
-                    {
-                        DistanceHit hit = distanceHitCollector.AllHits[hitIndex];
-                        CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
-                        constraintInfos[ constraintCount++ ] = constraint;
-                    }
-                }
-
-                float3 previousPosition = currentPosition;
-                float3 previousVelocity = currentVelocity;
-
-                SimplexSolver.Solve( world, deltaTime, math.up(), constraintCount, ref constraintInfos, ref currentPosition, ref currentVelocity, out float integratedTime );
-
-                remainingTime -= integratedTime;
-            }
-
-            transform.pos = currentPosition;
-            linearVelocity = currentVelocity;
-        }
-        
         public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
         {
+            bool dynamicBody = 0 <= rigidbodyIndex && rigidbodyIndex < world.NumDynamicBodies;
+
             constraint = new SurfaceConstraintInfo
             {
                 Plane = new Plane
@@ -109,17 +65,15 @@ namespace KinematicCharacterController
                     Normal = normal,
                     Distance = distance
                 },
-                ColliderKey = key,
                 RigidBodyIndex = rigidbodyIndex,
+                ColliderKey = key,
                 HitPosition = position,
-                Velocity = float3.zero,
-                Priority = 1,
+                Velocity = dynamicBody ? world.MotionVelocities[ rigidbodyIndex ].LinearVelocity : float3.zero
             };
 
             if( distance < 0.0f )
             {
-                float3 recoveryVelocity = constraint.Velocity - constraint.Plane.Normal * distance;
-                constraint.Velocity = recoveryVelocity;
+                constraint.Velocity = constraint.Velocity - constraint.Plane.Normal * distance;
             }
         }
     }
