@@ -13,6 +13,8 @@ namespace KinematicCharacterController
     {
         public CharacterControllerState State;
         public float GroundTollerance;
+        public float MaxSpeed;
+        public float Acceleration;
         public float MaxSlope;
     }
 }

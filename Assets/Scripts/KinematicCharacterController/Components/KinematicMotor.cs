@@ -7,5 +7,6 @@ namespace KinematicCharacterController
     public struct KinematicMotor : IComponentData
     {
         public int MaxIterations;
+        public float SkinWidth;
     }
 }

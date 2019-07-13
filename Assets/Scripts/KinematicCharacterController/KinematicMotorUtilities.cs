@@ -77,9 +77,66 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe void SolveCollisionConstraints( PhysicsWorld world, float deltaTime, int maxIterations, Collider* collider, ref RigidTransform transform, ref float3 velocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> surfaceConstraints )
+        public static unsafe void SolveCollisionConstraints( PhysicsWorld world, float deltaTime, int maxIterations, float skinWidth, Collider* collider, ref RigidTransform transform, ref float3 velocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> surfaceConstraints )
         {
-            transform.pos = transform.pos + velocity;
+            float remainingTime = deltaTime;
+            // float3 previousDisplacement = velocity * remainingTime;
+
+            float3 outPosition = transform.pos;
+            float3 outVelocity = velocity;
+
+            quaternion orientation = transform.rot;
+
+            const float timeEpsilon = 0.000001f;
+
+            for( int i = 0; i < maxIterations && remainingTime > timeEpsilon; i++ )
+            {
+                MaxHitCollector<DistanceHit> distanceHitCollector = new MaxHitCollector<DistanceHit>( skinWidth, ref distanceHits );
+                MaxHitCollector<ColliderCastHit> colliderHitCollector = new MaxHitCollector<ColliderCastHit>( 1.0f, ref colliderHits );
+
+                int constraintCount = 0;
+
+                // Handle distance checks
+                {
+                    ColliderDistanceInput input = new ColliderDistanceInput
+                    {
+                        Collider = collider,
+                        MaxDistance = skinWidth,
+                        Transform = new RigidTransform
+                        {
+                            pos = outPosition,
+                            rot = orientation
+                        }
+                    };
+                    world.CalculateDistance( input, ref distanceHitCollector );
+
+                    for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
+                    {
+                        DistanceHit hit = distanceHitCollector.AllHits[ hitIndex ];
+                        CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
+                        surfaceConstraints[ constraintCount++ ] = constraint;
+                    }
+                }
+
+                float3 previousPosition = outPosition;
+                float3 previousVelocity = outVelocity;
+
+                SimplexSolver.Solve( world, remainingTime, math.up(), constraintCount, ref surfaceConstraints, ref outPosition, ref outVelocity, out float integratedTime );
+
+                float3 currentDisplacement = outPosition - previousPosition;
+
+                if( math.lengthsq( currentDisplacement ) > SimplexSolver.c_SimplexSolverEpsilon )
+                {
+                    outPosition = previousPosition + currentDisplacement;
+                }
+
+                remainingTime -= integratedTime;
+
+                // previousDisplacement = outVelocity * remainingTime;
+            }
+
+            transform.pos = outPosition;
+            velocity = outVelocity;
         }
     }
 }

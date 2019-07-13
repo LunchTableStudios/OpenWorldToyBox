@@ -58,7 +58,7 @@ namespace KinematicCharacterController
                         rot = rotation.Value
                     };
 
-                    float3 velocity = movement.Value * DeltaTime;
+                    float3 velocity = movement.Value;
 
                     unsafe
                     {
@@ -72,14 +72,16 @@ namespace KinematicCharacterController
                             queryCollider->Filter = CollisionFilter.Default;
                         }
 
-                        KinematicMotorUtilities.SolveCollisionConstraints( World, DeltaTime, motor.MaxIterations, queryCollider, ref transform, ref velocity, ref DistanceHits, ref ColliderCastHits, ref SurfaceConstraintInfos );
+                        KinematicMotorUtilities.SolveCollisionConstraints( World, DeltaTime, motor.MaxIterations, motor.SkinWidth, queryCollider, ref transform, ref velocity, ref DistanceHits, ref ColliderCastHits, ref SurfaceConstraintInfos );
                     }
 
                     translation.Value = transform.pos;
+                    movement.Value = velocity;
 
                     // Apply data back to chunk
                     {
                         chunkTranslations[i] = translation;
+                        chunkMovements[i] = movement;
                     }
                 }
             }
@@ -101,7 +103,7 @@ namespace KinematicCharacterController
 
         protected override JobHandle OnUpdate(JobHandle inputDependencies )
         {
-            m_ExportPhysicsWorldSystem.FinalJobHandle.Complete(); // Without this the update seems a bit more jittery
+            m_ExportPhysicsWorldSystem.FinalJobHandle.Complete();
 
             NativeArray<ArchetypeChunk> chunks = m_motorQuery.CreateArchetypeChunkArray( Allocator.TempJob );
 
