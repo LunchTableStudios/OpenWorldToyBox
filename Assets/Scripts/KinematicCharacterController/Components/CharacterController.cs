@@ -1,6 +1,7 @@
 namespace KinematicCharacterController
 {
     using Unity.Entities;
+    using Unity.Mathematics;
 
     public enum CharacterControllerState : byte
     {
@@ -15,6 +16,8 @@ namespace KinematicCharacterController
         public float GroundTollerance;
         public float MaxSpeed;
         public float Acceleration;
+        public float Friction;
         public float MaxSlope;
+        public float3 TargetDirection;
     }
 }

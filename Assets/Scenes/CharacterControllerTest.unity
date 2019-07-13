@@ -1187,7 +1187,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1176891446}
-  m_LocalRotation: {x: -0.0044763605, y: 0.102088265, z: 0.00045939095, w: 0.9947652}
+  m_LocalRotation: {x: -0.00447633, y: 0.10208826, z: 0.0004593879, w: 0.9947652}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -1463,9 +1463,14 @@ MonoBehaviour:
   ControllerSettings:
     State: 0
     GroundTollerance: 0.1
-    MaxSpeed: 10
+    MaxSpeed: 5
     Acceleration: 0.4
+    Friction: 0.9
     MaxSlope: 90
+    TargetDirection:
+      x: 0
+      y: 0
+      z: 0
   GravitySettings:
     Value:
       x: 0
