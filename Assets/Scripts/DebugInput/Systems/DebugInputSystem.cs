@@ -31,7 +31,6 @@ namespace DebugInput
                 movement.Value.z = controller.TargetDirection.z;
 
                 controller.TargetDirection *= controller.Friction;
-
             } );
         }
     }

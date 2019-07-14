@@ -80,7 +80,7 @@ namespace KinematicCharacterController
         public static unsafe void SolveCollisionConstraints( PhysicsWorld world, float deltaTime, int maxIterations, float skinWidth, Collider* collider, ref RigidTransform transform, ref float3 velocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> surfaceConstraints )
         {
             float remainingTime = deltaTime;
-            // float3 previousDisplacement = velocity * remainingTime;
+            float3 previousDisplacement = velocity * remainingTime;
 
             float3 outPosition = transform.pos;
             float3 outVelocity = velocity;
@@ -92,7 +92,6 @@ namespace KinematicCharacterController
             for( int i = 0; i < maxIterations && remainingTime > timeEpsilon; i++ )
             {
                 MaxHitCollector<DistanceHit> distanceHitCollector = new MaxHitCollector<DistanceHit>( skinWidth, ref distanceHits );
-                MaxHitCollector<ColliderCastHit> colliderHitCollector = new MaxHitCollector<ColliderCastHit>( 1.0f, ref colliderHits );
 
                 int constraintCount = 0;
 
@@ -118,6 +117,43 @@ namespace KinematicCharacterController
                     }
                 }
 
+                // Handle Collider 
+                {
+                    float3 displacement = previousDisplacement;
+                    MaxHitCollector<ColliderCastHit> colliderHitCollector = new MaxHitCollector<ColliderCastHit>( 1.0f, ref colliderHits );
+                    
+                    ColliderCastInput input = new ColliderCastInput
+                    {
+                        Collider = collider,
+                        Position = outPosition,
+                        Direction = velocity,
+                        Orientation = orientation
+                    };
+                    world.CastCollider( input, ref colliderHitCollector );
+
+                    for( int hitIndex = 0; hitIndex < colliderHitCollector.NumHits; hitIndex++ )
+                    {
+                        ColliderCastHit hit = colliderHitCollector.AllHits[ hitIndex ];
+
+                        bool duplicate = false;
+                        for( int distanceHitIndex = 0; distanceHitIndex < distanceHitCollector.NumHits; distanceHitIndex++ )
+                        {
+                            DistanceHit distanceHit = distanceHitCollector.AllHits[ distanceHitIndex ];
+                            if( distanceHit.RigidBodyIndex == hit.RigidBodyIndex && distanceHit.ColliderKey.Equals( hit.ColliderKey ) )
+                            {
+                                duplicate = true;
+                                break;
+                            }
+                        }
+
+                        if( !duplicate )
+                        {
+                            CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Fraction * math.length( previousDisplacement ), deltaTime, out SurfaceConstraintInfo constraint );
+                            surfaceConstraints[ constraintCount++ ] = constraint;
+                        }
+                    }
+                }
+
                 float3 previousPosition = outPosition;
                 float3 previousVelocity = outVelocity;
 
@@ -132,7 +168,7 @@ namespace KinematicCharacterController
 
                 remainingTime -= integratedTime;
 
-                // previousDisplacement = outVelocity * remainingTime;
+                previousDisplacement = outVelocity * remainingTime;
             }
 
             transform.pos = outPosition;
