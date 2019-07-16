@@ -72,7 +72,7 @@ namespace KinematicCharacterController
                             queryCollider->Filter = CollisionFilter.Default;
                         }
 
-                        KinematicMotorUtilities.SolveCollisionConstraints( World, DeltaTime, motor.MaxIterations, motor.SkinWidth, queryCollider, ref transform, ref velocity, ref DistanceHits, ref ColliderCastHits, ref SurfaceConstraintInfos );
+                        KinematicMotorUtilities.SolveCollisionConstraints( World, DeltaTime, motor.MaxIterations, motor.SkinWidth, 360, queryCollider, ref transform, ref velocity, ref DistanceHits, ref ColliderCastHits, ref SurfaceConstraintInfos );
                     }
 
                     translation.Value = transform.pos;

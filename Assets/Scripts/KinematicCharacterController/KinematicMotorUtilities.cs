@@ -54,7 +54,7 @@ namespace KinematicCharacterController
             }
         }
 
-        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
+        public static void CreateConstraintFromHit( PhysicsWorld world, ColliderKey key, int rigidbodyIndex, float3 position, float3 velocity, float3 normal, float distance, float deltaTime, out SurfaceConstraintInfo constraint )
         {
             bool dynamicBody = 0 <= rigidbodyIndex && rigidbodyIndex < world.NumDynamicBodies;
 
@@ -68,7 +68,7 @@ namespace KinematicCharacterController
                 RigidBodyIndex = rigidbodyIndex,
                 ColliderKey = key,
                 HitPosition = position,
-                Velocity = dynamicBody ? world.MotionVelocities[ rigidbodyIndex ].LinearVelocity : float3.zero
+                Velocity = dynamicBody ? world.MotionVelocities[ rigidbodyIndex ].LinearVelocity : velocity
             };
 
             if( distance < 0.0f )
@@ -77,7 +77,32 @@ namespace KinematicCharacterController
             }
         }
 
-        public static unsafe void SolveCollisionConstraints( PhysicsWorld world, float deltaTime, int maxIterations, float skinWidth, Collider* collider, ref RigidTransform transform, ref float3 velocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> surfaceConstraints )
+        public static void CreateSlopeConstraint( float3 up, float maxSlopCos, ref SurfaceConstraintInfo constraint, ref NativeArray<SurfaceConstraintInfo> constraints, ref int constraintCount )
+        {
+            float verticalDot = math.dot( constraint.Plane.Normal, up );
+            bool validPlane = true;//verticalDot > SimplexSolver.c_SimplexSolverEpsilon && verticalDot < maxSlopCos;
+            if( validPlane )
+            {
+                SurfaceConstraintInfo slopeConstraint = constraint;
+                slopeConstraint.Plane.Normal = math.normalize( slopeConstraint.Plane.Normal - verticalDot * up );
+
+                float distance = slopeConstraint.Plane.Distance;
+
+                slopeConstraint.Plane.Distance = distance / math.dot( slopeConstraint.Plane.Normal, constraint.Plane.Normal );
+
+                if( distance < 0.0f )
+                {
+                    constraint.Plane.Distance = 0.0f;
+
+                    float3 newVelocity = slopeConstraint.Velocity - slopeConstraint.Plane.Normal * distance;
+                    slopeConstraint.Velocity = newVelocity;
+                }
+
+                constraints[ constraintCount++ ] = slopeConstraint;
+            }
+        }
+
+        public static unsafe void SolveCollisionConstraints( PhysicsWorld world, float deltaTime, int maxIterations, float skinWidth, float maxSlope, Collider* collider, ref RigidTransform transform, ref float3 velocity, ref NativeArray<DistanceHit> distanceHits, ref NativeArray<ColliderCastHit> colliderHits, ref NativeArray<SurfaceConstraintInfo> surfaceConstraints )
         {
             float remainingTime = deltaTime;
             float3 previousDisplacement = velocity * remainingTime;
@@ -112,7 +137,8 @@ namespace KinematicCharacterController
                     for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
                     {
                         DistanceHit hit = distanceHitCollector.AllHits[ hitIndex ];
-                        CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
+                        CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, float3.zero, hit.SurfaceNormal, hit.Distance, deltaTime, out SurfaceConstraintInfo constraint );
+                        CreateSlopeConstraint( math.up(), math.cos( maxSlope ), ref constraint, ref surfaceConstraints, ref constraintCount );
                         surfaceConstraints[ constraintCount++ ] = constraint;
                     }
                 }
@@ -148,7 +174,8 @@ namespace KinematicCharacterController
 
                         if( !duplicate )
                         {
-                            CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Fraction * math.length( previousDisplacement ), deltaTime, out SurfaceConstraintInfo constraint );
+                            CreateConstraintFromHit( world, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, outVelocity, hit.SurfaceNormal, hit.Fraction * math.length( previousDisplacement ), deltaTime, out SurfaceConstraintInfo constraint );
+                            CreateSlopeConstraint( math.up(), math.cos( maxSlope ), ref constraint, ref surfaceConstraints, ref constraintCount );
                             surfaceConstraints[ constraintCount++ ] = constraint;
                         }
                     }
@@ -161,9 +188,52 @@ namespace KinematicCharacterController
 
                 float3 currentDisplacement = outPosition - previousPosition;
 
+                MaxHitCollector<ColliderCastHit> displacementHitCollector = new MaxHitCollector<ColliderCastHit>( 1.0f, ref colliderHits );
+                int displacementContactIndex = -1;
+
                 if( math.lengthsq( currentDisplacement ) > SimplexSolver.c_SimplexSolverEpsilon )
                 {
-                    outPosition = previousPosition + currentDisplacement;
+                    ColliderCastInput input = new ColliderCastInput
+                    {
+                        Collider = collider,
+                        Position = previousPosition,
+                        Direction = currentDisplacement,
+                        Orientation = orientation
+                    };
+                    world.CastCollider( input, ref displacementHitCollector );
+
+                    for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
+                    {
+                        ColliderCastHit hit = displacementHitCollector.AllHits[ hitIndex ];
+
+                        bool duplicate = false;
+                        for( int constrainIndex = 0; constrainIndex < constraintCount; constrainIndex++ )
+                        {
+                            SurfaceConstraintInfo constraint = surfaceConstraints[ constrainIndex ];
+                            if( constraint.RigidBodyIndex == hit.RigidBodyIndex && constraint.ColliderKey.Equals( hit.ColliderKey ) )
+                            {
+                                duplicate = true;
+                                break;
+                            }
+
+                            if( !duplicate )
+                            {
+                                displacementContactIndex = hitIndex;
+                                break;
+                            }
+                        }
+                    }
+
+                    if( displacementContactIndex >= 0 )
+                    {
+                        ColliderCastHit newContact = displacementHitCollector.AllHits[ displacementContactIndex ];
+
+                        float fraction = newContact.Fraction / math.length( currentDisplacement );
+                        integratedTime *= fraction;
+
+                        float3 displacement = currentDisplacement * fraction;
+                        outPosition = previousPosition + displacement;
+                    }
                 }
 
                 remainingTime -= integratedTime;

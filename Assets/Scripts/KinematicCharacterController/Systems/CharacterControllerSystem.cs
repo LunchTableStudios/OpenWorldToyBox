@@ -79,7 +79,7 @@ namespace KinematicCharacterController
                         for( int hitIndex = 0; hitIndex < distanceHitCollector.NumHits; hitIndex++ )
                         {
                             DistanceHit hit = distanceHitCollector.AllHits[ hitIndex ];
-                            KinematicMotorUtilities.CreateConstraintFromHit( World, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, hit.SurfaceNormal, hit.Distance, DeltaTime, out SurfaceConstraintInfo constraint );
+                            KinematicMotorUtilities.CreateConstraintFromHit( World, hit.ColliderKey, hit.RigidBodyIndex, hit.Position, float3.zero, hit.SurfaceNormal, hit.Distance, DeltaTime, out SurfaceConstraintInfo constraint );
                             SurfaceConstraintInfos[ hitIndex ] = constraint;
                         }
 
